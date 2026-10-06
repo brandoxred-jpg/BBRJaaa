@@ -31,9 +31,10 @@
     body::after {
       content: "";
       position: fixed;
-      inset: -35%;
+      inset: -10%;
       pointer-events: none;
       z-index: -1;
+      will-change: transform;
     }
 
     body::before {
@@ -42,7 +43,6 @@
         radial-gradient(ellipse at 74% 30%, rgba(112, 0, 18, 0.8) 0%, transparent 38%),
         radial-gradient(ellipse at 56% 80%, rgba(224, 20, 30, 0.5) 0%, transparent 32%),
         linear-gradient(145deg, #090b10 12%, #310710 48%, #10070d 76%, #08090d);
-      filter: blur(22px);
       animation: red-tide-flow 22s ease-in-out infinite alternate;
     }
 
@@ -51,7 +51,7 @@
         repeating-linear-gradient(164deg, transparent 0 48px, rgba(255, 35, 48, 0.11) 50px, transparent 56px 102px),
         linear-gradient(90deg, transparent, rgba(190, 0, 25, 0.17), transparent);
       opacity: 0.65;
-      transform: rotate(-8deg) scale(1.15);
+      transform: translate3d(0, 0, 0) rotate(-8deg) scale(1.15);
       animation: red-tide-ripple 14s ease-in-out infinite alternate;
     }
 
@@ -66,10 +66,17 @@
 
     @keyframes red-tide-ripple {
       0% {
-        background-position: 0 0, 0 0;
+        transform: translate3d(-2%, -1%, 0) rotate(-8deg) scale(1.15);
       }
       100% {
-        background-position: 180px 90px, -120px 0;
+        transform: translate3d(2%, 1%, 0) rotate(-4deg) scale(1.15);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      body::before,
+      body::after {
+        animation: none;
       }
     }
 
@@ -143,7 +150,7 @@
       justify-content: center;
       user-select: none;
       z-index: 2;
-      transition: transform 0.08s ease, filter 0.08s ease;
+      will-change: transform;
     }
 
     #player::before,
@@ -192,7 +199,7 @@
       justify-content: center;
       user-select: none;
       z-index: 1;
-      transition: transform 0.08s ease, filter 0.08s ease;
+      will-change: transform;
     }
 
     #enemy::before,
@@ -244,15 +251,16 @@
     let mouseY = window.innerHeight / 2;
     let burst = 0;
     let disparos = 0;
+    let lastFrame = 0;
     const keys = {};
 
     const speed = 7;
+    const frameDuration = 1000 / 60;
 
     window.addEventListener('pointermove', (event) => {
       mouseX = event.clientX;
       mouseY = event.clientY;
-      reticle.style.left = event.clientX + 'px';
-      reticle.style.top = event.clientY + 'px';
+      reticle.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0) translate(-50%, -50%)`;
     });
 
     window.addEventListener('keydown', (e) => {
@@ -271,28 +279,26 @@
       enemyDx = (Math.abs(enemyDx) + 0.35 + disparos * 0.09) * (enemyDx >= 0 ? 1 : -1);
       enemyDy = (Math.abs(enemyDy) + 0.28 + disparos * 0.08) * (enemyDy >= 0 ? 1 : -1);
 
-      enemy.style.filter = 'brightness(1.5) drop-shadow(0 0 16px rgba(255,255,255,0.8))';
-      enemy.style.transform = `rotate(${Math.random() * 40 - 20}deg) scale(${1 + disparos * 0.01})`;
+      enemy.style.filter = 'brightness(1.35)';
 
       setTimeout(() => {
         enemy.style.filter = 'none';
       }, 120);
     });
 
-    function movePlayer() {
-      if (keys['w']) playerY -= speed;
-      if (keys['s']) playerY += speed;
-      if (keys['a']) playerX -= speed;
-      if (keys['d']) playerX += speed;
+    function movePlayer(frameScale) {
+      if (keys['w']) playerY -= speed * frameScale;
+      if (keys['s']) playerY += speed * frameScale;
+      if (keys['a']) playerX -= speed * frameScale;
+      if (keys['d']) playerX += speed * frameScale;
 
       playerX = Math.max(0, Math.min(playerX, window.innerWidth - 150));
       playerY = Math.max(0, Math.min(playerY, window.innerHeight - 150));
 
-      player.style.left = playerX + 'px';
-      player.style.top = playerY + 'px';
+      player.style.transform = `translate3d(${playerX}px, ${playerY}px, 0)`;
     }
 
-    function moveEnemy() {
+    function moveEnemy(frameScale) {
       const enemyCenterX = enemyX + 75;
       const enemyCenterY = enemyY + 75;
       const distanceX = playerX + 75 - enemyCenterX;
@@ -301,12 +307,12 @@
 
       if (distance < 220) {
         const force = (220 - distance) / 220;
-        enemyX -= (distanceX / distance) * (9 + disparos * 1.6) * force;
-        enemyY -= (distanceY / distance) * (9 + disparos * 1.6) * force;
+        enemyX -= (distanceX / distance) * (9 + disparos * 1.6) * force * frameScale;
+        enemyY -= (distanceY / distance) * (9 + disparos * 1.6) * force * frameScale;
       }
 
-      enemyX += enemyDx * (1 + burst);
-      enemyY += enemyDy * (1 + burst);
+      enemyX += enemyDx * (1 + burst) * frameScale;
+      enemyY += enemyDy * (1 + burst) * frameScale;
 
       if (enemyX <= 0 || enemyX >= window.innerWidth - 150) {
         enemyDx *= -1;
@@ -321,28 +327,26 @@
       enemyX = Math.max(0, Math.min(enemyX, window.innerWidth - 150));
       enemyY = Math.max(0, Math.min(enemyY, window.innerHeight - 150));
 
-      enemy.style.left = enemyX + 'px';
-      enemy.style.top = enemyY + 'px';
-      enemy.style.transform = `rotate(${Math.sin(enemyY / 20) * 12 + Math.random() * 8 - 4}deg)`;
+      enemy.style.transform = `translate3d(${enemyX}px, ${enemyY}px, 0) rotate(${Math.sin(enemyY / 20) * 12}deg)`;
 
       if (burst > 0) {
-        burst *= 0.88;
+        burst *= Math.pow(0.88, frameScale);
       }
       if (burst < 0.05) {
         burst = 0;
       }
     }
 
-    function loop() {
-      movePlayer();
-      moveEnemy();
+    function loop(timestamp) {
+      const frameScale = lastFrame ? Math.min((timestamp - lastFrame) / frameDuration, 2) : 1;
+      lastFrame = timestamp;
+      movePlayer(frameScale);
+      moveEnemy(frameScale);
       requestAnimationFrame(loop);
     }
 
-    player.style.left = playerX + 'px';
-    player.style.top = playerY + 'px';
-    enemy.style.left = enemyX + 'px';
-    enemy.style.top = enemyY + 'px';
+    player.style.transform = `translate3d(${playerX}px, ${playerY}px, 0)`;
+    enemy.style.transform = `translate3d(${enemyX}px, ${enemyY}px, 0)`;
 
     requestAnimationFrame(loop);
   </script>
