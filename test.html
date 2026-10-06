@@ -14,7 +14,7 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #111;
+      background: #08090d;
       font-family: Arial, sans-serif;
       cursor: none;
     }
@@ -24,6 +24,53 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      isolation: isolate;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      inset: -35%;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    body::before {
+      background:
+        radial-gradient(ellipse at 18% 44%, rgba(177, 0, 24, 0.8) 0%, transparent 34%),
+        radial-gradient(ellipse at 74% 30%, rgba(112, 0, 18, 0.8) 0%, transparent 38%),
+        radial-gradient(ellipse at 56% 80%, rgba(224, 20, 30, 0.5) 0%, transparent 32%),
+        linear-gradient(145deg, #090b10 12%, #310710 48%, #10070d 76%, #08090d);
+      filter: blur(22px);
+      animation: red-tide-flow 22s ease-in-out infinite alternate;
+    }
+
+    body::after {
+      background:
+        repeating-linear-gradient(164deg, transparent 0 48px, rgba(255, 35, 48, 0.11) 50px, transparent 56px 102px),
+        linear-gradient(90deg, transparent, rgba(190, 0, 25, 0.17), transparent);
+      opacity: 0.65;
+      transform: rotate(-8deg) scale(1.15);
+      animation: red-tide-ripple 14s ease-in-out infinite alternate;
+    }
+
+    @keyframes red-tide-flow {
+      0% {
+        transform: translate3d(-4%, -2%, 0) rotate(-5deg) scale(1);
+      }
+      100% {
+        transform: translate3d(4%, 3%, 0) rotate(6deg) scale(1.12);
+      }
+    }
+
+    @keyframes red-tide-ripple {
+      0% {
+        background-position: 0 0, 0 0;
+      }
+      100% {
+        background-position: 180px 90px, -120px 0;
+      }
     }
 
     #contador {
